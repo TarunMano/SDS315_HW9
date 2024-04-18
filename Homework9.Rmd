@@ -1,0 +1,164 @@
+---
+title: "Homework 9"
+author: "Tarun Manoharan"
+date: "2024-04-17"
+output: 
+  pdf_document: default
+  html_document: default
+---
+[https://github.com/TarunMano/SDS315_HW9](https://github.com/TarunMano/SDS315_HW9)
+
+```{r global_options, echo=FALSE}
+knitr::opts_chunk$set(fig.height=3, fig.width=3, warning=FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60))
+```
+***
+```{r echo = FALSE, message = FALSE}
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+library(mosaic)
+library(MatchIt)
+library(moderndive)
+library(kableExtra)
+```
+
+## Problem 1: Get out the vote
+
+### Part A
+```{r echo = FALSE}
+turnout = read.csv("turnout.csv")
+
+received = round(prop(voted1998~GOTV_call, data= turnout)[2],2)
+
+not_received = round(prop(voted1998~GOTV_call, data = turnout)[1],2)
+
+confReceived = prop.test(voted1998 ~ GOTV_call, data = turnout, success = 1)
+confReceived1 = round(confReceived$conf.int,3)
+
+```
+The analysis shows that the proportion of those who received a GOTV call and voted in 1998 was `r received*100`%, in comparison to those that didn't were `r not_received*100`%, and that the large sample confidence interval is `r confReceived1`. Overall, it can be said that recipients who received a GOTV call were more likely to vote than those who didn't by a margin of 26 to 14 percent. 
+
+
+### Part B
+```{r echo = FALSE}
+turnout$GOTV_call = factor(turnout$GOTV_call)
+turnout$voted1996 = factor(turnout$voted1996)
+turnout$voted1998 = factor(turnout$voted1998)
+turnout$MAJORPTY = factor(turnout$MAJORPTY)
+
+ggplot(turnout, aes(x = voted1996, fill = GOTV_call)) +
+  geom_bar(position = "fill") +
+  labs(title = "Proportion of Votes from 1996 by GOTV Call", x = "Voted in 1996", y = "Proportion",) + theme_minimal()
+ggplot(turnout, aes(x = voted1996, fill = voted1998)) +
+  geom_bar(position = "fill") +
+  labs(title = "Proportion of votes from 1996 by votes in 1998", x = "Voted in 1996", y = "Proportion",) + theme_minimal()
+```
+
+These plots show that voters who voted in 1996 not only more likely to vote in 1998 as well, and although marginal, also receive a GOTV call. Thus making the factor that someone voted in 1996, more likely to receive a GOTV call, and vote in 1998. 
+
+```{r echo = FALSE}
+ggplot(turnout, aes(x = GOTV_call, y = AGE)) + geom_boxplot(fill = '#F8766D') + labs(title = "GOTV Call Recipients by Age", x = "GOTV Call", y = "Age") + theme_minimal()
+
+ggplot(turnout, aes(x = voted1998, y = AGE)) + geom_boxplot(fill = '#00BFC4') + labs(title = "1998 Voters by Age", x = "GOTV Call", y = "Age") + theme_minimal()
+
+```
+
+These plots show that on average, recipients of the GOTV call had a higher age than of those who didn't receive one, as well as that voters in 1998 were older than that of those who didn't vote, making age a confounding variable. 
+
+
+```{r echo = FALSE}
+ggplot(turnout, aes(x = MAJORPTY, fill = GOTV_call)) +
+  geom_bar(position = "fill") +
+  labs(title = "", x = "Major Party Status", y = "Proportion",) + theme_minimal()
+ggplot(turnout, aes(x = MAJORPTY, fill = voted1998)) +
+  geom_bar(position = "fill") +
+  labs(title = "", x = "Major Party Status", y = "Proportion",) + theme_minimal()
+```
+
+These plots show that voters who are associated with a major party not only more likely to vote in 1998 as well, and although marginal, also receive a GOTV call. Thus making the factor that someone is in a major party, is more likely to receive a GOTV call, and vote in 1998.
+
+
+### Part C
+```{r echo = FALSE}
+turnoutMatched = matchit(GOTV_call ~ voted1996 + AGE + MAJORPTY, data = turnout, ratio = 5) %>% match.data
+
+balanceAGE = round(mean(AGE ~ GOTV_call, data = turnoutMatched),2)
+
+balance1996 = round(xtabs(~ voted1996 + GOTV_call, data=turnoutMatched) %>%
+  prop.table(margin=2),2)
+
+balancePTY = round(xtabs(~ MAJORPTY + GOTV_call, data=turnoutMatched) %>%
+  prop.table(margin=2),2)
+
+```
+
+After matching, the confounding variables are nearly identical for those who did and didn't receive a GOTV call. 
+
+For age, the means are:
+`r balanceAGE`
+
+For voters in 1996, the proportions are:
+`r balance1996`
+
+For Major Party status, the proportions are:
+`r balancePTY`
+
+```{r echo = FALSE}
+Mreceived = round(prop(voted1998~GOTV_call, data= turnoutMatched)[2],2)
+
+Mnot_received = round(prop(voted1998~GOTV_call, data = turnoutMatched)[1],2)
+
+MconfReceived = prop.test(voted1998 ~ GOTV_call, data = turnoutMatched, success = 1)
+MconfReceived1 = round(MconfReceived$conf.int,3)
+
+```
+
+This analysis of the matched data set shows us that the 95% confidence interval for the difference in those who voted after getting a GOTV call, and those who didn't receive one is between `r MconfReceived1`. This comes from the proportions of those who received a call and voted, `r Mreceived*100`%, and those who didn't, `r Mnot_received*100`%. Overall this shows that recipients of the GOTV call increased the likelihood of someone voting in the 1998 election.
+
+## Problem 2: Manufacturing flaws in circuit boards
+
+```{r echo = FALSE}
+solder = read.csv("solder.csv")
+```
+
+### Part A
+```{r echo = FALSE}
+ggplot(solder) + geom_boxplot(aes(x = Opening, y = skips), fill = 'lightblue') + theme_minimal() + labs(title = "Type of Opening Versus Skips", y = "Skips")
+```
+
+This box plot shows the distributions of the size of opening, and the number of skips observed, the data shows that a small opening creates the most amount of skips, with the highest average, and count of skips. While the large opening has the least in those categories. This shows that the number of skips is directly related to the size of the opening on the solder gun. 
+
+```{r echo = FALSE}
+ggplot(solder) + geom_boxplot(aes(x = Solder, y = skips), fill = 'lightblue') + theme_minimal() + labs(title = "Thickness Versus Skips", y = "Skips")
+```
+
+
+This box plot shows the distribution of the thickness of solder, and the number of skips observed, the data shows that thin solders provide for a substantial more amount of skips in comparison to thick solders. This shows that the number of skips is directly related to the thickness of the alloy used for soldering. 
+
+### Part B
+```{r echo = FALSE, comment=""}
+
+lm1 = lm(skips ~ Solder + Opening + Solder:Opening, data = solder)
+
+
+regTable = get_regression_table(lm1, conf.level = 0.95, digits=2)
+regTable = select(regTable,term, estimate, lower_ci, upper_ci)
+kbl(regTable)
+```
+### Part C
+
+The baseline number of skips for a large opening and thick solder is 0.39 skips, which is the intercept. 
+
+The main effect for a thin solder is 2.28 skips. This is the effect of solder in isolation.
+
+The main effect for a medium opening is 2.41 skips, and for a small opening is 5.13 skips. This is the effect for both medium and small openings. 
+
+The interaction effect for a thin solder and medium opening is -0.74 skips, which means that a thin solder and medium opening combined provides .74 less skips than the individual sum of both. 
+
+The interaction effect for a thin solder and small opening is 9.65 skips, which means that a thin solder and medium opening combined provides 9.65 more skips than the individual sum of both.
+
+### Part D
+
+I would recommend a combination of a large opening and a thick solder, as this combination ensures the least amount of skips in the manufacturing process. This can be seen within the regression model, as the combination of the two had the least number of skips with 0.39, as well as when used in isolation they provided the least amount of skips. Therefore overall the best combination in minimizing the number of skips would be a large opening and thick solder. 
+
+
